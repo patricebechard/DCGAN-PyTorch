@@ -1,4 +1,14 @@
-# from google.colab import files
+from dcgan import DCGAN
+from constants import use_cuda
+
+# from utils import load_dataset
+
+import torch
+from torch import nn
+from torch import optim 
+from torch.autograd import Variable
+
+import json
 
 def train(model, objective_type='gan', update_ratio=3, n_episodes=2000, print_every=100,
           batch_size=128, fake_input_dim=100, learning_rate=0.0002, betas=(0.5, 0.999)):
@@ -130,4 +140,16 @@ def train(model, objective_type='gan', update_ratio=3, n_episodes=2000, print_ev
 
 #             files.download(model.name + '.pt')
             
+if __name__ == "__main__":
+
+    with open('params.json') as f:
+        params = json.load(f)
+
+    dataset = torchvision.utils.DataLoader()
+
+    model = DCGAN()
+
+    train(model, dataset)
+
+    # dataset = load_dataset
         
