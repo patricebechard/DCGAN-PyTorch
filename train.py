@@ -1,7 +1,6 @@
 from dcgan import DCGAN
 from constants import use_cuda
-
-# from utils import load_dataset
+from utils import create_dataloader, imshow
 
 import torch
 from torch import nn
@@ -9,8 +8,9 @@ from torch import optim
 from torch.autograd import Variable
 
 import json
+import time
 
-def train(model, objective_type='gan', update_ratio=3, n_episodes=2000, print_every=100,
+def train(model, dataloader, n_epochs=30, objective_type='gan', update_ratio=3, save_model=False,
           batch_size=128, fake_input_dim=100, learning_rate=0.0002, betas=(0.5, 0.999)):
     """
     Parameters
@@ -18,44 +18,37 @@ def train(model, objective_type='gan', update_ratio=3, n_episodes=2000, print_ev
     objective_type : string
         Objective we are maximizing using the model.
         Takes value in ['gan', 'wgan', 'lsgan']
-        For the assignment, we only need to implement one
- ### NV - We actually need to implement 2 of them.       
-   
-    n_episodes : int
-        Number of times we update the whole model.
+        #TODO implement wgan objective    
         
     update_ratio : int
         Number of times we update the discriminator before updating the generator.
         Called 'k' in Goodfellow et al. 2014
-    
     """
-  
-    # TODO implement 'gan', 'wgan' and 'lsgan' objective types
-    # TODO implement Inception score and one other (Mode score, Wasserstein distance, Maximum Mean Discrepancy (MMD))
   
     if use_cuda:
         model = model.cuda()
     
-    if objective_type == 'lsgan':
+    if objective_type == 'gan':
+        criterion = nn.BCEWithLogitsLoss()
+    elif objective_type == 'lsgan':
       criterion = nn.MSELoss()
     else:
-      criterion = nn.BCEWithLogitsLoss()
+        raise NotImplementedError ('Objective type "%s" not implemented yet'%objective_type)
       
     D_optimizer = optim.Adam(model.discriminator.parameters(), lr=learning_rate, betas=betas)
     G_optimizer = optim.Adam(model.generator.parameters(), lr=learning_rate, betas=betas)
     
-    for episode in range(n_episodes):
+    n_batches = len(dataloader)
+
+    for epoch in range(n_epochs):
+
+        start = time.time()
+        for batch_idx, (inputs_real, _) in enumerate(dataloader):
       
-        batch_loader = iter(train_dataloader)
-        loss_episode = 0
-      
-        # Updating the discriminator
-        for i in range(update_ratio):
-          
+            # Updating the discriminator
             model.discriminator.zero_grad()
             
             # feeding real data
-            inputs_real, _ = batch_loader.next()
             targets_real = torch.ones(batch_size)
             
             inputs_real, targets_real = Variable(inputs_real), Variable(targets_real)
@@ -64,12 +57,7 @@ def train(model, objective_type='gan', update_ratio=3, n_episodes=2000, print_ev
             
             outputs_real = model(inputs_real, fake=False).squeeze()
             
-            #if objective_type == 'lsgan':
-              #outputs_real = F.sigmoid(outputs_real)            
-            
             loss = criterion(outputs_real, targets_real)
-            loss_episode += loss.data[0]
-            
             loss.backward()
 
             # feeding fake data
@@ -80,76 +68,79 @@ def train(model, objective_type='gan', update_ratio=3, n_episodes=2000, print_ev
             if use_cuda:
                 inputs_fake, targets_fake = inputs_fake.cuda(), targets_fake.cuda()
             
-            outputs_fake = model(inputs_fake, fake=True).squeeze()
-            
-            #if objective_type == 'lsgan':
-              #outputs_fake = F.sigmoid(outputs_fake)            
+            outputs_fake = model(inputs_fake, fake=True).squeeze()       
             
             loss = criterion(outputs_fake, targets_fake)
-            loss_episode += loss.data[0]
             loss.backward()
 
             D_optimizer.step()
-        
-        # Updating the generator                        
-        model.generator.zero_grad()        
-        
-        inputs_fake = torch.randn(batch_size, fake_input_dim)
-        # We want to fool the discriminator. We label these fake examples as real
-    ### NV - (just a note to myself)
-    ### NV - It's more like we use the Discriminator to learn the... ###
-    ### NV - ...Generator's parameters adapting them in order to give real (1) ###
-        targets_fake = torch.ones(batch_size)
-        inputs_fake, targets_fake = Variable(inputs_fake), Variable(targets_fake)
+
+            if batch_idx % update_ratio == 0:
+
+                # Updating the generator                        
+                model.generator.zero_grad()        
+                
+                inputs_fake = torch.randn(batch_size, fake_input_dim)
+                # We want to fool the discriminator. We label these fake examples as real
+                targets_fake = torch.ones(batch_size)
+
+                inputs_fake, targets_fake = Variable(inputs_fake), Variable(targets_fake)
+                if use_cuda:
+                    inputs_fake, targets_fake = inputs_fake.cuda(), targets_fake.cuda()
+                
+                outputs_fake = model(inputs_fake, fake=True).squeeze()    
+                
+                loss = criterion(outputs_fake, targets_fake)
+                loss.backward()
+                G_optimizer.step()
+
+            # time utils
+            rem_time = (time.time()-start) * (n_batches-batch_idx + 1) / (batch_idx + 1)
+            
+            rem_h = int(rem_time // 3600)
+            rem_m = int(rem_time // 60 - rem_h * 60)
+            rem_s = int(rem_time % 60)
+            print("Batch : %d / %d ----- Time remaining for the epoch : %02d:%02d:%02d" % (batch_idx, n_batches, rem_h, rem_m, rem_s), end="\r")
+
+        print()
+        print("Epoch : %d" % epoch)
+                
+        #real_img
+        real = inputs_real
         if use_cuda:
-            inputs_fake, targets_fake = inputs_fake.cuda(), targets_fake.cuda()
-        
-        outputs_fake = model(inputs_fake, fake=True).squeeze()
-        
-        #if objective_type == 'lsgan':
-          #outputs_fake = F.sigmoid(outputs_fake)        
-        
-        loss = criterion(outputs_fake, targets_fake)
-        
-        loss.backward()
-        G_optimizer.step()
-        
-        
-        if episode % print_every == 0:
-          
-            print("Episode : %d" % episode)
-            print("Loss for discriminator: ", loss_episode)
-            
-            #for now, just show a couple examples of real examples vs fake examples
-            
-            #real_img
-            real, _ = batch_loader.next()
+            real = real.cpu()
 
-            #fake_img
-            fake = Variable(torch.randn(batch_size, fake_input_dim))
-            if use_cuda:
-                fake = fake.cuda()
-            fake = model.generator(fake).data
-            if use_cuda:
-              fake = fake.cpu()
+        #fake_img
+        fake = Variable(torch.randn(batch_size, fake_input_dim))
+        if use_cuda:
+            fake = fake.cuda()
+        fake = model.generator(fake).data
+        if use_cuda:
+          fake = fake.cpu()
 
-            imshow(real, fake)
-            
-            
-#             torch.save(model.state_dict(), model.name + '.pt')
+        imshow(real, fake, show=False, save=True, epoch=epoch)
 
-#             files.download(model.name + '.pt')
-            
+        if save_model:
+            torch.save(model.state_dict(), model.name + '.pt')
+
 if __name__ == "__main__":
 
     with open('params.json') as f:
         params = json.load(f)
 
-    dataset = torchvision.utils.DataLoader()
+    objective_type = params['objective_type']
+    update_ratio = params['update_ratio']
+    learning_rate = params['learning_rate']
+    betas = (params['betas'][0], params['betas'][1])
+    fake_input_dim = params['fake_input_dim']
+    batch_size = params['batch_size']
 
-    model = DCGAN()
+    dataset = create_dataloader(batch_size)
 
-    train(model, dataset)
+    model = DCGAN(generator_type=params['generator_type'])
 
-    # dataset = load_dataset
+    train(model, dataset, objective_type=objective_type, save_model=True, 
+          update_ratio=update_ratio, fake_input_dim=fake_input_dim,
+          learning_rate=learning_rate, betas=betas,
+          batch_size=batch_size)
         
