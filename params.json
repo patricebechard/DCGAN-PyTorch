@@ -1,7 +1,7 @@
 {
 	"generator_type": "deconv",
-	"learning_rate": 1e-4,
-	"batch_size": 32,
+	"learning_rate": 2e-4,
+	"batch_size": 128,
 	"update_ratio": 3,
 	"objective_type": "gan",
 	"fake_input_dim": 100,
