@@ -1,4 +1,4 @@
-from constants import use_cuda
+from constants import use_cuda, processed_datafile, results_dir
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,11 +6,13 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 import torchvision
+from torchvision import transforms, datasets
+
 
 def provide_visual_samples(model, title='Samples'):
-  
+
     # use this function for question 5. (a)
-  
+
     fake = Variable(torch.randn(batch_size, fake_input_dim))
     if use_cuda:
         fake = fake.cuda()
@@ -22,8 +24,8 @@ def provide_visual_samples(model, title='Samples'):
 
     fake = torchvision.utils.make_grid(fake, nrow=len(fake), padding=0)
     fake = fake.numpy().transpose((1, 2, 0))
-    
-    
+
+
     # Just a figure and one subplot
     f, ax = plt.subplots(figsize=(12, 4))
     ax.imshow(fake)
@@ -117,3 +119,52 @@ def load_model(model, file_name='model.pt'):
 def save_model(model, file_name='model.pt'):
     pass     
  
+def imshow(real, fake, show=True, save=False, epoch=0):
+    """Imshow for Tensor."""
+
+    #keep only 4 images for both real and fake inputs
+    real = real[:4]
+    fake = fake[:4]
+
+    # Make a grid from batch
+    real = torchvision.utils.make_grid(real, nrow=2, padding=0)
+    fake = torchvision.utils.make_grid(fake, nrow=2, padding=0)
+
+    #convert to numpy
+    real = real.numpy().transpose((1, 2, 0))
+    fake = fake.numpy().transpose((1, 2, 0))
+
+    # Two subplots, unpack the axes array immediately
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=(9,4))
+    ax1.imshow(real)
+    ax1.set_title('Real examples')
+    ax1.axis('off')
+    ax2.imshow(fake)
+    ax2.set_title('Fake examples')
+    ax2.axis('off')
+    if show:
+        plt.pause(0.001)
+    if save:
+        plt.savefig(results_dir + 'samples_%d.png' % epoch)
+    plt.clf()
+
+def create_dataloader(batch_size=64):
+
+    data_transforms = transforms.Compose([transforms.ToTensor()])
+
+    dataset =datasets.ImageFolder(processed_datafile, data_transforms)
+
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                             shuffle=True, num_workers=0)
+    
+    return dataloader
+
+if __name__ == "__main__":
+
+    dataset = create_dataloader()
+
+    for i in enumerate(dataset):
+
+        print(i)
+
+        break
