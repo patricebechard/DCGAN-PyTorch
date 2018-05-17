@@ -134,6 +134,7 @@ if __name__ == "__main__":
     betas = (params['betas'][0], params['betas'][1])
     fake_input_dim = params['fake_input_dim']
     batch_size = params['batch_size']
+    n_epochs = params['n_epochs']
 
     dataset = create_dataloader(batch_size)
 
@@ -141,6 +142,6 @@ if __name__ == "__main__":
 
     train(model, dataset, objective_type=objective_type, save_model=True, 
           update_ratio=update_ratio, fake_input_dim=fake_input_dim,
-          learning_rate=learning_rate, betas=betas,
+          learning_rate=learning_rate, betas=betas, n_epochs=n_epochs,
           batch_size=batch_size)
         
