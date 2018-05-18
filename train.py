@@ -49,7 +49,7 @@ def train(model, dataloader, n_epochs=30, objective_type='gan', update_ratio=3, 
             model.discriminator.zero_grad()
             
             # feeding real data
-            targets_real = torch.ones(batch_size)
+            targets_real = torch.ones(inputs_real.shape[0])
             
             inputs_real, targets_real = Variable(inputs_real), Variable(targets_real)
             if use_cuda:
