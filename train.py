@@ -136,8 +136,6 @@ if __name__ == "__main__":
     batch_size = params['batch_size']
     n_epochs = params['n_epochs']
 
-    dataset = create_dataloader(batch_size)
-
     model = DCGAN(generator_type=params['generator_type'])
 
     train(model, dataset, objective_type=objective_type, save_model=True, 

@@ -9,7 +9,7 @@ import torchvision
 from torchvision import transforms, datasets
 
 
-def provide_visual_samples(model, title='Samples'):
+def provide_visual_samples(model, batch_size=32, fake_input_dim=100, title='Samples'):
 
     # use this function for question 5. (a)
 
@@ -31,6 +31,10 @@ def provide_visual_samples(model, title='Samples'):
     ax.imshow(fake)
     ax.set_title(title)
     ax.axis('off')
+
+    plt.tight_layout()
+
+    plt.savefig(results_dir + 'samples.png')
 
 def changes_in_latent_space(model):
    

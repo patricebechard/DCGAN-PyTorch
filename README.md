@@ -20,8 +20,14 @@ python train.py
 
 You can change the hyperparameters for the training and the model in the `params.json` file.
 
+Here are some samples obtained using the trained model :
+
+![Samples](https://raw.githubusercontent.com/patricebechard/DCGAN-PyTorch/master/results/samples.png)
+
+**You can download a pretrained model using the deconvolutional generator [here](https://drive.google.com/file/d/1OjKEHRPYyk8pVCGgiM6SIpashBm4OK83/view?usp=sharing)**
+
+
+
 ### TODO
 
-* Show examples of samples creating using the model
-* Provide pre-trained model
 * Provide interactive notebook to show results
